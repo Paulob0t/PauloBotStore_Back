@@ -78,6 +78,25 @@ class CreateProductRequest(BaseModel):
     activo: Optional[bool] = True
 
 
+class UpdateProductRequest(BaseModel):
+    nombre_producto: Optional[str] = None
+    sku: Optional[str] = None
+    descripcion: Optional[str] = None
+    id_categoria: Optional[int] = None
+    id_subcategoria: Optional[int] = None
+    precio: Optional[float] = None
+    descuento: Optional[float] = None
+    stock: Optional[int] = None
+    ubicacion: Optional[str] = None
+    imagen_principal: Optional[str] = None
+    imagen_secundaria_1: Optional[str] = None
+    imagen_secundaria_2: Optional[str] = None
+    imagen_secundaria_3: Optional[str] = None
+    destacado: Optional[bool] = None
+    orden_destacado: Optional[int] = None
+    activo: Optional[bool] = None
+
+
 class CheckOrderResponse(BaseModel):
     occupied: bool
     order: int

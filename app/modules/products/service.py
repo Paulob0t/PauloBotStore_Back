@@ -6,6 +6,7 @@ from app.modules.products.repository import ProductRepository
 from app.modules.products.models import Producto, Categoria, Subcategoria
 from app.modules.products.schemas import (
     CreateProductRequest,
+    UpdateProductRequest,
     ProductDto,
     CategoryDto,
     SubcategoryDto,
@@ -136,6 +137,85 @@ class ProductService:
             success=True,
             message="¡Producto guardado exitosamente en el catálogo!",
             id_producto=saved_prod.id_producto
+        )
+
+    def update_product(self, id_producto: int, req: UpdateProductRequest) -> ProductResponse:
+        product = self.repository.get_product_by_id(id_producto)
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto #{id_producto} no encontrado."
+            )
+
+        # Validar orden de destacado si se actualiza
+        if req.destacado is not None:
+            if req.destacado and req.orden_destacado:
+                if self.repository.is_featured_order_occupied(req.orden_destacado, exclude_id=id_producto):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"La posición #{req.orden_destacado} de destacados ya está ocupada por otro producto."
+                    )
+                product.destacado = 1
+                product.orden_destacado = req.orden_destacado
+            elif not req.destacado:
+                product.destacado = 0
+                product.orden_destacado = None
+
+        if req.nombre_producto is not None:
+            product.nombre_producto = req.nombre_producto
+        if req.sku is not None:
+            product.sku = req.sku
+        if req.descripcion is not None:
+            product.descripcion = req.descripcion
+        if req.id_categoria is not None:
+            product.id_categoria = req.id_categoria
+        if req.id_subcategoria is not None:
+            product.id_subcategoria = req.id_subcategoria if req.id_subcategoria > 0 else None
+        if req.precio is not None:
+            product.precio = req.precio
+        if req.descuento is not None:
+            product.descuento = req.descuento
+        if req.stock is not None:
+            product.stock = req.stock
+        if req.ubicacion is not None:
+            product.ubicacion = req.ubicacion
+        if req.activo is not None:
+            product.activo = 1 if req.activo else 0
+
+        # Si vienen imágenes nuevas en Base64 o data URI, guardarlas en disco
+        if req.imagen_principal and req.imagen_principal.startswith("data:"):
+            product.imagen_principal = save_image_from_base64(
+                req.imagen_principal,
+                subfolder="products",
+                filename_prefix=f"{id_producto}_main"
+            )
+
+        if req.imagen_secundaria_1 and req.imagen_secundaria_1.startswith("data:"):
+            product.imagen_secundaria_1 = save_image_from_base64(
+                req.imagen_secundaria_1,
+                subfolder="products",
+                filename_prefix=f"{id_producto}_sec1"
+            )
+
+        if req.imagen_secundaria_2 and req.imagen_secundaria_2.startswith("data:"):
+            product.imagen_secundaria_2 = save_image_from_base64(
+                req.imagen_secundaria_2,
+                subfolder="products",
+                filename_prefix=f"{id_producto}_sec2"
+            )
+
+        if req.imagen_secundaria_3 and req.imagen_secundaria_3.startswith("data:"):
+            product.imagen_secundaria_3 = save_image_from_base64(
+                req.imagen_secundaria_3,
+                subfolder="products",
+                filename_prefix=f"{id_producto}_sec3"
+            )
+
+        self.repository.update_product(product)
+        return ProductResponse(
+            success=True,
+            message=f"¡Producto #{id_producto} actualizado exitosamente!",
+            id_producto=id_producto
         )
 
     def delete_product(self, id_producto: int) -> ProductResponse:

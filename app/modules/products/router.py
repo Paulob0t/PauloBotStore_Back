@@ -11,6 +11,7 @@ from app.modules.products.schemas import (
     ProductDto,
     CategoryDto,
     CreateProductRequest,
+    UpdateProductRequest,
     CreateCategoryRequest,
     CreateSubcategoryRequest,
     CheckOrderResponse,
@@ -71,6 +72,17 @@ def create_product(
 ):
     service = ProductService(db)
     return service.create_product(req, id_usuario=current_user.id)
+
+
+@router.put("/products/{id}", response_model=ProductResponse, summary="Actualizar producto existente")
+def update_product(
+    id: int,
+    req: UpdateProductRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    service = ProductService(db)
+    return service.update_product(id, req)
 
 
 @router.delete("/products/{id}", response_model=ProductResponse, summary="Eliminar producto")
