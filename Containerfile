@@ -1,16 +1,19 @@
-FROM php:8.4-apache
+FROM python:3.12-slim
 
-# Instalar extensiones y herramientas
-RUN apt-get update && apt-get install -y libpq-dev git unzip zip \
-    && docker-php-ext-install mysqli pdo pdo_mysql pdo_pgsql pgsql \
-    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 
-# Habilitar mod_rewrite y AllowOverride en Apache
-RUN a2enmod rewrite \
-    && sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+# Instalar dependencias del sistema necesarias para PostgreSQL y compilación
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Ajustar directorio de trabajo
-WORKDIR /var/www/html
+# Instalar dependencias de Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Copiar aplicación
+COPY . .
 
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

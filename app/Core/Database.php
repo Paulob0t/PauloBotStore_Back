@@ -48,10 +48,10 @@ class Database
             mysqli_report(MYSQLI_REPORT_OFF);
 
             $host = getenv('DB_HOST') ?: '127.0.0.1';
-            $user = getenv('DB_USER') ?: 'root';
-            $pass = getenv('DB_PASS') ?: '';
-            $name = getenv('DB_NAME') ?: 'paulobot_vending';
-            $port = (int)(getenv('DB_PORT') ?: 3306);
+            $user = getenv('DB_USER') ?: 'paulobot';
+            $pass = getenv('DB_PASS') ?: 'paulobot_password';
+            $name = getenv('DB_NAME') ?: 'paulobot_store';
+            $port = (int)(getenv('DB_PORT') ?: 5432);
 
             $conn = null;
             try {

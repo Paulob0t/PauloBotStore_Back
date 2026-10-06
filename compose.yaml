@@ -12,16 +12,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  vendingbox:
+  api:
     build:
       context: .
       dockerfile: Containerfile
-    container_name: vendingbox_app
+    container_name: paulobot_api
     restart: unless-stopped
     ports:
-      - "8000:80"
+      - "8000:8000"
     volumes:
-      - .:/var/www/html:z
+      - .:/app:z
     depends_on:
       - db
     environment:
@@ -34,4 +34,3 @@ services:
 
 volumes:
   postgres_data:
-
