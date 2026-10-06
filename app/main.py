@@ -7,8 +7,10 @@ from app.core.database import engine, Base
 from app.core.image_storage import ensure_upload_dirs
 from app.modules.auth.router import router as auth_router
 from app.modules.products.router import router as products_router
+from app.modules.dashboard.router import router as dashboard_router
 import app.modules.users.models  # asegurar registro de modelos
 import app.modules.products.models  # asegurar registro de modelos
+import app.modules.sales.models  # asegurar registro de modelos
 
 # Asegurar directorios de uploads en disco
 ensure_upload_dirs()
@@ -51,6 +53,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # Agregación de routers modulares bajo el prefijo /api/v1
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(products_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
 
 
 @app.get("/api/health", tags=["Salud"])
