@@ -9,6 +9,7 @@ error_log
 
 # Dependencies
 backend/vendor/
+PHP/backend/vendor/
 frontend/node_modules/
 frontend/dist/
 frontend/.angular/
