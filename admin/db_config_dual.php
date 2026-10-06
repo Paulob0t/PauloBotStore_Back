@@ -33,10 +33,10 @@ if (file_exists($envPath)) {
 }
 
 // Credenciales desde variables de entorno con fallback
-$DB_USER = getenv('DB_USER') ?: (getenv('DB_NUBE_USER') ?: 'root');
-$DB_PASS = getenv('DB_PASS') ?: (getenv('DB_NUBE_PASS') ?: '');
-$DB_NAME = getenv('DB_NAME') ?: (getenv('DB_NUBE_NAME') ?: 'paulobot_vending');
-$DB_PORT = (int)(getenv('DB_PORT') ?: 3306);
+$DB_USER = getenv('DB_USER') ?: (getenv('DB_NUBE_USER') ?: 'paulobot');
+$DB_PASS = getenv('DB_PASS') ?: (getenv('DB_NUBE_PASS') ?: 'paulobot_password');
+$DB_NAME = getenv('DB_NAME') ?: (getenv('DB_NUBE_NAME') ?: 'paulobot_store');
+$DB_PORT = (int)(getenv('DB_PORT') ?: 5432);
 $DB_NUBE_HOST = getenv('DB_NUBE_HOST') ?: 'cpanel.colegos.com.mx';
 $DB_NUBE_USER = getenv('DB_NUBE_USER') ?: $DB_USER;
 $DB_NUBE_PASS = getenv('DB_NUBE_PASS') ?: $DB_PASS;
