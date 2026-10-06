@@ -57,4 +57,7 @@ wheels/
 *.egg
 .venv
 venv/
-ENV/
+# Uploads / Media storage
+uploads/*
+!uploads/**/.gitkeep
+

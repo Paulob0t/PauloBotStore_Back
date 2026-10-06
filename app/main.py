@@ -4,8 +4,14 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
 from app.core.database import engine, Base
+from app.core.image_storage import ensure_upload_dirs
 from app.modules.auth.router import router as auth_router
+from app.modules.products.router import router as products_router
 import app.modules.users.models  # asegurar registro de modelos
+import app.modules.products.models  # asegurar registro de modelos
+
+# Asegurar directorios de uploads en disco
+ensure_upload_dirs()
 
 # Crear tablas en PostgreSQL si no existen
 Base.metadata.create_all(bind=engine)
@@ -44,6 +50,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 # Agregación de routers modulares bajo el prefijo /api/v1
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(products_router, prefix="/api/v1")
 
 
 @app.get("/api/health", tags=["Salud"])
