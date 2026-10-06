@@ -14,6 +14,17 @@ class SubcategoryDto(BaseModel):
         from_attributes = True
 
 
+class SubcategoryDetailDto(BaseModel):
+    id_subcategoria: int
+    id_categoria: int
+    nombre_subcategoria: str
+    nombre_categoria: Optional[str] = None
+    tiene_imagen: Optional[int] = 0
+
+    class Config:
+        from_attributes = True
+
+
 class CategoryDto(BaseModel):
     id: int
     nombre: str
@@ -25,14 +36,37 @@ class CategoryDto(BaseModel):
 
 
 class CreateCategoryRequest(BaseModel):
-    nombre: str
+    nombre_categoria: Optional[str] = None
+    nombre: Optional[str] = None
+    imagen: Optional[str] = None
+    subcategorias: Optional[List[str]] = []
+
+
+class UpdateCategoryRequest(BaseModel):
+    nombre_categoria: Optional[str] = None
+    nombre: Optional[str] = None
     imagen: Optional[str] = None
 
 
 class CreateSubcategoryRequest(BaseModel):
-    id_categoria: int
-    nombre: str
+    id_categoria: Optional[int] = None
+    nombre_subcategoria: Optional[str] = None
+    nombre: Optional[str] = None
     imagen: Optional[str] = None
+
+
+class UpdateSubcategoryRequest(BaseModel):
+    id_categoria: Optional[int] = None
+    nombre_subcategoria: Optional[str] = None
+    nombre: Optional[str] = None
+    imagen: Optional[str] = None
+
+
+class CategoryResponse(BaseModel):
+    success: bool
+    message: str
+    id_categoria: Optional[int] = None
+    id_subcategoria: Optional[int] = None
 
 
 # ---------------------- DTOs de Productos ---------------------- #

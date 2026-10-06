@@ -19,6 +19,9 @@ class ProductRepository:
     def get_subcategory_by_id(self, id_subcategoria: int) -> Optional[Subcategoria]:
         return self.db.query(Subcategoria).filter(Subcategoria.id_subcategoria == id_subcategoria).first()
 
+    def get_all_subcategories(self) -> List[Subcategoria]:
+        return self.db.query(Subcategoria).order_by(Subcategoria.id_subcategoria.asc()).all()
+
     def create_category(self, nombre: str, imagen_path: Optional[str] = None) -> Categoria:
         cat = Categoria(nombre_categoria=nombre, imagen_categoria=imagen_path)
         self.db.add(cat)
@@ -26,12 +29,32 @@ class ProductRepository:
         self.db.refresh(cat)
         return cat
 
+    def update_category(self, cat: Categoria) -> Categoria:
+        self.db.commit()
+        self.db.refresh(cat)
+        return cat
+
+    def delete_category(self, cat: Categoria) -> bool:
+        self.db.delete(cat)
+        self.db.commit()
+        return True
+
     def create_subcategory(self, id_categoria: int, nombre: str, imagen_path: Optional[str] = None) -> Subcategoria:
         sub = Subcategoria(id_categoria=id_categoria, nombre_subcategoria=nombre, imagen_subcategoria=imagen_path)
         self.db.add(sub)
         self.db.commit()
         self.db.refresh(sub)
         return sub
+
+    def update_subcategory(self, sub: Subcategoria) -> Subcategoria:
+        self.db.commit()
+        self.db.refresh(sub)
+        return sub
+
+    def delete_subcategory(self, sub: Subcategoria) -> bool:
+        self.db.delete(sub)
+        self.db.commit()
+        return True
 
     # ------------------ Métodos de Productos ------------------ #
 

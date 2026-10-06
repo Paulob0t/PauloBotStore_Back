@@ -106,6 +106,17 @@ def seed_database():
             db.commit()
             print(f"Producto creado: {p.nombre_producto} en slot {p.ubicacion}")
 
+    # Sincronizar secuencias de PostgreSQL
+    try:
+        from sqlalchemy import text
+        db.execute(text("SELECT setval('categorias_id_categoria_seq', COALESCE((SELECT MAX(id_categoria) FROM categorias), 1));"))
+        db.execute(text("SELECT setval('subcategorias_id_subcategoria_seq', COALESCE((SELECT MAX(id_subcategoria) FROM subcategorias), 1));"))
+        db.execute(text("SELECT setval('productos_id_producto_seq', COALESCE((SELECT MAX(id_producto) FROM productos), 1));"))
+        db.execute(text("SELECT setval('usuarios_id_seq', COALESCE((SELECT MAX(id) FROM usuarios), 1));"))
+        db.commit()
+    except Exception as e:
+        print(f"Nota sobre secuencias: {e}")
+
     print("Seed completado exitosamente.")
     db.close()
 

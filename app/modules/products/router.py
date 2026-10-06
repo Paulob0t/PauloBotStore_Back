@@ -10,12 +10,17 @@ from app.modules.products.service import ProductService
 from app.modules.products.schemas import (
     ProductDto,
     CategoryDto,
+    SubcategoryDto,
+    SubcategoryDetailDto,
     CreateProductRequest,
     UpdateProductRequest,
     CreateCategoryRequest,
+    UpdateCategoryRequest,
     CreateSubcategoryRequest,
+    UpdateSubcategoryRequest,
     CheckOrderResponse,
-    ProductResponse
+    ProductResponse,
+    CategoryResponse
 )
 
 router = APIRouter(tags=["Productos & Catálogo"])
@@ -28,10 +33,100 @@ def get_categories(db: Session = Depends(get_db)):
     return service.get_all_categories_tree()
 
 
+@router.post("/categories", response_model=CategoryResponse, summary="Crear nueva categoría")
+def create_category(
+    req: CreateCategoryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    service = ProductService(db)
+    return service.create_category(req)
+
+
+@router.put("/categories/{id}", response_model=CategoryResponse, summary="Actualizar categoría")
+def update_category(
+    id: int,
+    req: UpdateCategoryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    service = ProductService(db)
+    return service.update_category(id, req)
+
+
+@router.delete("/categories/{id}", response_model=CategoryResponse, summary="Eliminar categoría")
+def delete_category(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    service = ProductService(db)
+    return service.delete_category(id)
+
+
 @router.get("/categories/{id}/image", summary="Obtener imagen de categoría con caché")
 def get_category_image(id: int, db: Session = Depends(get_db)):
     service = ProductService(db)
     file_path = service.get_category_image_path(id)
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Imagen no encontrada.")
+    return FileResponse(file_path, media_type="image/webp", headers={"Cache-Control": "public, max-age=86400"})
+
+
+# ----------------- Rutas de Subcategorías ----------------- #
+
+@router.get("/subcategories", response_model=List[SubcategoryDetailDto], summary="Obtener todas las subcategorías")
+def get_subcategories(db: Session = Depends(get_db)):
+    service = ProductService(db)
+    return service.get_all_subcategories()
+
+
+@router.post("/subcategories", response_model=CategoryResponse, summary="Crear subcategoría")
+def create_subcategory(
+    req: CreateSubcategoryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    service = ProductService(db)
+    return service.create_subcategory(req)
+
+
+@router.post("/categories/{id}/subcategories", response_model=CategoryResponse, summary="Crear subcategoría para una categoría")
+def create_category_subcategory(
+    id: int,
+    req: CreateSubcategoryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    service = ProductService(db)
+    return service.create_subcategory(req, id_categoria=id)
+
+
+@router.put("/subcategories/{id}", response_model=CategoryResponse, summary="Actualizar subcategoría")
+def update_subcategory(
+    id: int,
+    req: UpdateSubcategoryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    service = ProductService(db)
+    return service.update_subcategory(id, req)
+
+
+@router.delete("/subcategories/{id}", response_model=CategoryResponse, summary="Eliminar subcategoría")
+def delete_subcategory(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    service = ProductService(db)
+    return service.delete_subcategory(id)
+
+
+@router.get("/subcategories/{id}/image", summary="Obtener imagen de subcategoría con caché")
+def get_subcategory_image(id: int, db: Session = Depends(get_db)):
+    service = ProductService(db)
+    file_path = service.get_subcategory_image_path(id)
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Imagen no encontrada.")
     return FileResponse(file_path, media_type="image/webp", headers={"Cache-Control": "public, max-age=86400"})

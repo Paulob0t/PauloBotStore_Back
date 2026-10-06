@@ -7,10 +7,16 @@ from app.modules.products.models import Producto, Categoria, Subcategoria
 from app.modules.products.schemas import (
     CreateProductRequest,
     UpdateProductRequest,
+    CreateCategoryRequest,
+    UpdateCategoryRequest,
+    CreateSubcategoryRequest,
+    UpdateSubcategoryRequest,
     ProductDto,
     CategoryDto,
     SubcategoryDto,
-    ProductResponse
+    SubcategoryDetailDto,
+    ProductResponse,
+    CategoryResponse
 )
 from app.core.image_storage import save_image_from_base64, get_full_image_path
 
@@ -49,6 +55,155 @@ class ProductService:
         if not cat or not cat.imagen_categoria:
             return None
         return get_full_image_path(cat.imagen_categoria)
+
+    def create_category(self, req: CreateCategoryRequest) -> CategoryResponse:
+        name = (req.nombre_categoria or req.nombre or "").strip()
+        if not name:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El nombre de la categoría es obligatorio.")
+
+        cat = self.repository.create_category(nombre=name)
+
+        if req.imagen and req.imagen.startswith("data:"):
+            cat.imagen_categoria = save_image_from_base64(
+                req.imagen,
+                subfolder="categories",
+                filename_prefix=f"cat_{cat.id_categoria}"
+            )
+            self.repository.update_category(cat)
+
+        # Crear subcategorías iniciales si vienen
+        if req.subcategorias:
+            for sub_name in req.subcategorias:
+                sub_clean = sub_name.strip()
+                if sub_clean:
+                    self.repository.create_subcategory(id_categoria=cat.id_categoria, nombre=sub_clean)
+
+        return CategoryResponse(
+            success=True,
+            message=f"Categoría '{cat.nombre_categoria}' creada exitosamente.",
+            id_categoria=cat.id_categoria
+        )
+
+    def update_category(self, id_categoria: int, req: UpdateCategoryRequest) -> CategoryResponse:
+        cat = self.repository.get_category_by_id(id_categoria)
+        if not cat:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Categoría #{id_categoria} no encontrada.")
+
+        name = (req.nombre_categoria or req.nombre)
+        if name and name.strip():
+            cat.nombre_categoria = name.strip()
+
+        if req.imagen and req.imagen.startswith("data:"):
+            cat.imagen_categoria = save_image_from_base64(
+                req.imagen,
+                subfolder="categories",
+                filename_prefix=f"cat_{id_categoria}"
+            )
+
+        self.repository.update_category(cat)
+        return CategoryResponse(
+            success=True,
+            message="Categoría actualizada exitosamente.",
+            id_categoria=id_categoria
+        )
+
+    def delete_category(self, id_categoria: int) -> CategoryResponse:
+        cat = self.repository.get_category_by_id(id_categoria)
+        if not cat:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Categoría #{id_categoria} no encontrada.")
+
+        self.repository.delete_category(cat)
+        return CategoryResponse(
+            success=True,
+            message=f"Categoría #{id_categoria} y sus subcategorías asociadas han sido eliminadas.",
+            id_categoria=id_categoria
+        )
+
+    # ------------------ Servicios de Subcategorías ------------------ #
+
+    def get_all_subcategories(self) -> List[SubcategoryDetailDto]:
+        subcategories = self.repository.get_all_subcategories()
+        return [
+            SubcategoryDetailDto(
+                id_subcategoria=s.id_subcategoria,
+                id_categoria=s.id_categoria,
+                nombre_subcategoria=s.nombre_subcategoria,
+                nombre_categoria=s.categoria.nombre_categoria if s.categoria else None,
+                tiene_imagen=1 if s.imagen_subcategoria else 0
+            )
+            for s in subcategories
+        ]
+
+    def create_subcategory(self, req: CreateSubcategoryRequest, id_categoria: Optional[int] = None) -> CategoryResponse:
+        cat_id = id_categoria or req.id_categoria
+        if not cat_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Se requiere el ID de la categoría principal.")
+
+        name = (req.nombre_subcategoria or req.nombre or "").strip()
+        if not name:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El nombre de la subcategoría es obligatorio.")
+
+        sub = self.repository.create_subcategory(id_categoria=cat_id, nombre=name)
+
+        if req.imagen and req.imagen.startswith("data:"):
+            sub.imagen_subcategoria = save_image_from_base64(
+                req.imagen,
+                subfolder="categories",
+                filename_prefix=f"sub_{sub.id_subcategoria}"
+            )
+            self.repository.update_subcategory(sub)
+
+        return CategoryResponse(
+            success=True,
+            message=f"Subcategoría '{sub.nombre_subcategoria}' creada exitosamente.",
+            id_subcategoria=sub.id_subcategoria,
+            id_categoria=cat_id
+        )
+
+    def update_subcategory(self, id_subcategoria: int, req: UpdateSubcategoryRequest) -> CategoryResponse:
+        sub = self.repository.get_subcategory_by_id(id_subcategoria)
+        if not sub:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Subcategoría #{id_subcategoria} no encontrada.")
+
+        name = (req.nombre_subcategoria or req.nombre)
+        if name and name.strip():
+            sub.nombre_subcategoria = name.strip()
+
+        if req.id_categoria:
+            sub.id_categoria = req.id_categoria
+
+        if req.imagen and req.imagen.startswith("data:"):
+            sub.imagen_subcategoria = save_image_from_base64(
+                req.imagen,
+                subfolder="categories",
+                filename_prefix=f"sub_{id_subcategoria}"
+            )
+
+        self.repository.update_subcategory(sub)
+        return CategoryResponse(
+            success=True,
+            message="Subcategoría actualizada exitosamente.",
+            id_subcategoria=id_subcategoria,
+            id_categoria=sub.id_categoria
+        )
+
+    def delete_subcategory(self, id_subcategoria: int) -> CategoryResponse:
+        sub = self.repository.get_subcategory_by_id(id_subcategoria)
+        if not sub:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Subcategoría #{id_subcategoria} no encontrada.")
+
+        self.repository.delete_subcategory(sub)
+        return CategoryResponse(
+            success=True,
+            message=f"Subcategoría #{id_subcategoria} eliminada exitosamente.",
+            id_subcategoria=id_subcategoria
+        )
+
+    def get_subcategory_image_path(self, id_subcategoria: int) -> Optional[str]:
+        sub = self.repository.get_subcategory_by_id(id_subcategoria)
+        if not sub or not sub.imagen_subcategoria:
+            return None
+        return get_full_image_path(sub.imagen_subcategoria)
 
     # ------------------ Servicios de Productos ------------------ #
 
