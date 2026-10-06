@@ -36,16 +36,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.exceptions import RequestValidationError, HTTPException
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+# Manejador de excepciones HTTP estándar
+@app.exception_handler(HTTPException)
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "message": exc.detail
+        },
+        headers=getattr(exc, "headers", None)
+    )
+
 # Manejador de validación de esquemas Pydantic
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = exc.errors()
     first_error = errors[0]["msg"] if errors else "Datos de entrada inválidos."
+    field_loc = " -> ".join([str(l) for l in errors[0]["loc"]]) if errors else ""
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content={
             "success": False,
-            "message": f"Error de validación: {first_error}",
+            "message": f"Error de validación ({field_loc}): {first_error}",
             "errors": errors
         }
     )
