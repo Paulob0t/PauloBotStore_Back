@@ -1,124 +1,168 @@
-# 🤖 PauloBot Store — Ecosistema Inteligente Vending & POS eCommerce
+# 🤖 PauloBot Store — Backend REST API (Python & FastAPI)
 
-[![PHP Version](https://img.shields.io/badge/PHP-8.2%2B%20%7C%208.5-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
-[![Angular](https://img.shields.io/badge/Angular-22%20Standalone-DD0031?style=for-the-badge&logo=angular&logoColor=white)](https://angular.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0%20Swagger-85EA2D?style=for-the-badge&logo=openapi-initiative&logoColor=black)](https://swagger.io/)
-[![Server](https://img.shields.io/badge/Server-FrankenPHP-00ADD8?style=for-the-badge&logo=caddy&logoColor=white)](https://frankenphp.dev/)
-[![Database](https://img.shields.io/badge/Database-MySQL%20Dual-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Podman](https://img.shields.io/badge/Podman-OCI_Containers-892CA0?style=for-the-badge&logo=podman&logoColor=white)](https://podman.io/)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0_Swagger-85EA2D?style=for-the-badge&logo=openapi-initiative&logoColor=black)](https://swagger.io/)
+[![Pillow](https://img.shields.io/badge/Pillow-WebP_Engine-green?style=for-the-badge&logo=python&logoColor=white)](https://python-pillow.org/)
 
 ---
 
 ## 📌 Visión General de la Arquitectura
 
-**PauloBot Store** se encuentra en un proceso continuo de **refactorización y migración arquitectónica** desde un monolito en PHP nativo hacia una arquitectura desacoplada moderna basada en **API REST (PHP 8 + FrankenPHP + Swagger/OpenAPI)** y una **Single Page Application (SPA en Angular 22 + Tailwind CSS + Vite)**.
+**PauloBot Store Backend** es un servicio API REST de alto rendimiento construido con **Python 3.12**, **FastAPI** y **PostgreSQL 16**. Proporciona la capa lógica de negocio, persistencia relacional, procesamiento de imágenes en formato WebP y contratos de datos tipados mediante esquemas Pydantic y OpenAPI 3.0 para la SPA Frontend (Angular 22).
 
 ```mermaid
 graph TD
-    subgraph Frontend_SPA ["⚡ Frontend SPA (Angular 22 + Tailwind CSS)"]
-        StoreHome["Tienda Principal (HomeComponent)"]
-        FeaturedCarousel["Carrusel de Productos Destacados"]
-        InfiniteCategories["Carrusel Infinito de Categorías"]
-        CartDrawer["Drawer de Carrito Reactivo"]
-        Login["Login Screen (LoginComponent)"]
-        AdminShell["Admin Layout (Sidebar Modular)"]
-        Dashboard["Dashboard (KPIs & Gráfica 7 Días)"]
-        ProductsList["Consulta Productos (ProductListComponent)"]
-        ProductsForm["Agregar Producto (ProductFormComponent)"]
-        CategoriesList["Categorías (CategoryListComponent)"]
-        SubcategoriesList["Subcategorías (SubcategoryListComponent)"]
-        MovementsList["Movimientos (MovementListComponent)"]
-        CashRegister["Cortes de Caja (CashRegisterComponent)"]
-        CompanyConfig["Configuración Empresa (CompanyConfigComponent)"]
-        UserList["Gestión de Usuarios (UserListComponent)"]
-        CartSvc["CartService (Signals & Storage)"]
-        ProdSvc["ProductService (Signals)"]
-        CatSvc["CategoryService (Signals)"]
-        OpenApiGen["Servicios Generados (ng-openapi-gen)"]
+    subgraph Frontend_Client ["⚡ Frontend Client (Angular 22 SPA)"]
+        UIStore["Storefront & Carrito"]
+        UIAdmin["Admin Panel & Modales"]
+        ApiGen["Cliente HTTP Tipado (ng-openapi-gen)"]
     end
 
-    subgraph Backend_REST ["🔙 Backend REST API (PHP 8 + FrankenPHP)"]
-        Router["Router REST & CORS"]
-        ProductController["ProductController (/api/v1/products/featured, /api/v1/products/*)"]
-        CategoryController["CategoryController (/api/v1/categories/*)"]
-        AuthController["AuthController (/api/v1/auth/*)"]
-        DashboardController["DashboardController (/api/v1/dashboard)"]
-        MovementController["MovementController (/api/v1/movements/*)"]
-        CashRegisterController["CashRegisterController (/api/v1/cash-register/*)"]
-        ConfigController["ConfigController (/api/v1/config/*)"]
-        UserController["UserController (/api/v1/users/*)"]
-        Database["Database Dual (Local / Nube Fallback)"]
+    subgraph Backend_FastAPI ["🐍 Backend REST API (Python 3.12 + FastAPI)"]
+        APIRouter["FastAPI APIRouter (/api/v1) & CORS"]
+        
+        subgraph Modules ["Módulos de Dominio (Clean Architecture)"]
+            AuthMod["🔐 Auth & Security (JWT / Bcrypt)"]
+            ProdMod["📦 Products Module (CRUD & WebP Engine)"]
+            CatMod["🏷️ Categories & Subcategories Module"]
+            DashMod["📊 Dashboard & Metrics Module"]
+            SalesMod["💸 Sales & Tickets Module"]
+            CashMod["🏧 Cash Register Module"]
+            ConfigMod["⚙️ Company Config Module"]
+        end
+
+        PillowEngine["🖼️ Pillow Image Processing (WebP Converter)"]
+        SQLAlchemyORM["🗄️ SQLAlchemy 2.0 ORM Engine"]
     end
 
-    StoreHome --> FeaturedCarousel
-    StoreHome --> InfiniteCategories
-    StoreHome --> CartDrawer
-    StoreHome --> CartSvc
-    StoreHome --> ProdSvc
-    StoreHome --> CatSvc
-    ProdSvc --> OpenApiGen
-    CatSvc --> OpenApiGen
-    OpenApiGen -->|JSON / HTTP| Router
-    Router --> ProductController
-    Router --> CategoryController
-    ProductController --> Database
-    CategoryController --> Database
+    subgraph Storage_Layer ["💾 Capa de Persistencia & Archivos"]
+        PostgresDB[("🐘 PostgreSQL 16 (Podman)")]
+        LocalFS["📁 Almacenamiento Local (uploads/products/, uploads/categories/)"]
+    end
+
+    ApiGen -->|JSON / HTTP REST| APIRouter
+    APIRouter --> AuthMod & ProdMod & CatMod & DashMod & SalesMod & CashMod & ConfigMod
+    ProdMod --> PillowEngine
+    CatMod --> PillowEngine
+    PillowEngine --> LocalFS
+    AuthMod & ProdMod & CatMod & DashMod & SalesMod & CashMod & ConfigMod --> SQLAlchemyORM
+    SQLAlchemyORM --> PostgresDB
 ```
 
 ---
 
-## 🚀 Módulos Migrados
+## 🚀 Módulos del Sistema
 
-### 🏪 1. Storefront / Tienda Pública (`frontend/src/app/pages/store/`) y Portal de Inicio (`/`)
-- **Portal de Bienvenida:** [`HomeComponent`](file:///home/paulobot/PauloBotStore/frontend/src/app/pages/home/home.component.ts) en `/`
-  - Tarjetas interactivas de bienvenida y selección de acceso directo a **Tienda / Clientes** (`/store`) y **Panel Administrador** (`/login`).
-- **Tienda Pública & Máquina Vending:** [`StoreComponent`](file:///home/paulobot/PauloBotStore/frontend/src/app/pages/store/store.component.ts) en `/store`
-  - **Header Comercial:** Logo estilizado, buscador rápido, contador reactivo de carrito y acceso al portal / admin.
-  - **Hero Banner:** Bienvenida interactiva con distintivo de autoservicio 24/7.
-  - **Carrusel de Productos Destacados:** Auto-slide fluido y natural con cadencia periódica, pausa inteligente en hover/touch, badges de descuento y stock.
-  - **Carrusel Infinito de Categorías:** Desplazamiento circular suave e infinito con carga ligera de imágenes cacheadas en HTTP.
-  - **Drawer Lateral de Carrito:** Control interactivo de cantidades, subtotal en tiempo real y persistencia local (`CartService`).
+### 📦 1. Módulo de Productos (`app/modules/products/`)
+- **Catálogo & Destacados:** `GET /api/v1/products`, `GET /api/v1/products/featured`.
+- **CRUD Administrativo:** Creación (`POST`), actualización (`PUT`) y eliminación (`DELETE`).
+- **Gestión de Imágenes:** Conversión automática a formato `.webp` con compresión optimizada, guardado local en `uploads/products/` y entrega HTTP de alto rendimiento con cabeceras `Cache-Control: public, max-age=604800, immutable`.
 
-### 🔙 2. Backend REST API (`backend/`)
-- **Cero HTML:** Todo endpoint responde exclusivamente en `application/json` con cabeceras CORS unificadas.
-- **Swagger / OpenAPI 3.0 Integrado:** Atributos nativos PHP 8 (`#[OA\Post]`, `#[OA\Get]`, `#[OA\Put]`, `#[OA\Delete]`, `#[OA\Patch]`).
-  - Documentación interactiva en [`/api/docs`](http://localhost:8000/api/docs) con **Swagger UI**.
-  - Esquema dinámico en [`/api/v1/openapi.json`](http://localhost:8000/api/v1/openapi.json).
-- **Módulo de Productos & Destacados:** `GET /api/v1/products/featured`, catálogo general, servidor de imágenes con caché HTTP de 24 horas y altas multipart.
-- **Módulo de Categorías y Subcategorías:** `GET /api/v1/categories` con soporte para imágenes y agrupamiento de subcategorías.
-- **Módulos de Gestión:** Autenticación, Dashboard en tiempo real, Movimientos y tickets, Cortes de Caja, Configuración de Empresa y Usuarios.
+### 🏷️ 2. Módulo de Categorías y Subcategorías (`app/modules/categories/`)
+- **Jerarquía Comercial:** CRUD completo de Categorías (`/api/v1/categories`) y Subcategorías vinculadas (`/api/v1/subcategories`).
+- **Soporte Multimedia:** Procesamiento de imágenes representativas para el carrusel infinito del storefront.
+
+### 📊 3. Módulo de Dashboard & Analítica (`app/modules/dashboard/`)
+- **KPIs en Tiempo Real:** Ventas totales, tickets emitidos, conteo de productos activos y stock bajo.
+- **Gráfica de Ventas (7 Días):** Agrupación temporal de ingresos diarios para visualización analítica.
+
+### 💸 4. Módulo de Ventas & Movimientos (`app/modules/sales/`)
+- **Transacciones de Vending/POS:** Registro de comandas (`VentaComanda`) y partidas detalladas (`VentaDetalle`).
+- **Historial & Auditoría:** Consulta y trazabilidad de movimientos de inventario y caja.
+
+### 🔐 5. Autenticación & Usuarios (`app/modules/auth/`, `app/modules/users/`)
+- **Seguridad:** Hashing seguro de contraseñas con `bcrypt` y generación de tokens `JWT (JSON Web Tokens)`.
+- **Gestión de Usuarios:** Roles de sistema, permisos y auditoría de accesos.
+
+### 🏧 6. Control de Caja y Configuración (`app/modules/cash_register/`, `app/modules/config/`)
+- **Cortes de Caja:** Aperturas, retiros parciales y cierres de turno.
+- **Configuración Empresarial:** Datos fiscales, logo, ticket info y preferencias del sistema.
 
 ---
 
-## ⚙️ Cómo Ejecutar el Proyecto
+## ⚙️ Cómo Ejecutar el Backend
 
-### 1. Iniciar Backend REST API (Puerto 8000)
-```bash
-cd PauloBotStore
-./frankenphp php-server --listen 0.0.0.0:8000 --root ./backend/public
-```
-- **Swagger UI:** [`http://localhost:8000/api/docs`](http://localhost:8000/api/docs)
-- **OpenAPI JSON:** [`http://localhost:8000/api/v1/openapi.json`](http://localhost:8000/api/v1/openapi.json)
+### Opción A: Contenedores con Podman / Docker (Recomendado)
 
-### 2. Iniciar Frontend SPA (Puerto 4200)
-```bash
-cd PauloBotStore/frontend
-npm start
-```
-- 🌐 **Portal de Inicio:** [`http://localhost:4200/`](http://localhost:4200/)
-- 🏪 **Tienda & Vending Storefront:** [`http://localhost:4200/store`](http://localhost:4200/store)
-- 📊 **Dashboard Admin:** [`http://localhost:4200/admin`](http://localhost:4200/admin)
-- 👥 **Gestión de Usuarios:** [`http://localhost:4200/admin/usuarios`](http://localhost:4200/admin/usuarios)
-- ⚙️ **Configuración Empresa:** [`http://localhost:4200/admin/configuracion`](http://localhost:4200/admin/configuracion)
-- 🏧 **Cortes de Caja:** [`http://localhost:4200/admin/cortes-caja`](http://localhost:4200/admin/cortes-caja)
-- 💸 **Consulta de Movimientos:** [`http://localhost:4200/admin/movimientos`](http://localhost:4200/admin/movimientos)
-- 📋 **Consulta de Productos:** [`http://localhost:4200/admin/productos`](http://localhost:4200/admin/productos)
-- ➕ **Agregar Producto:** [`http://localhost:4200/admin/productos/nuevo`](http://localhost:4200/admin/productos/nuevo)
-- 🏷️ **Categorías:** [`http://localhost:4200/admin/categorias`](http://localhost:4200/admin/categorias)
-- 🗂️ **Subcategorías:** [`http://localhost:4200/admin/subcategorias`](http://localhost:4200/admin/subcategorias)
+Inicia la base de datos PostgreSQL 16 y la API de FastAPI en contenedores aislados:
 
-### 3. Regenerar Servicios e Interfaces de TypeScript
 ```bash
-cd PauloBotStore/frontend
-npm run api:generate
+# Iniciar servicios en segundo plano
+podman compose up -d
+
+# Ver logs de la API
+podman compose logs -f api
 ```
+
+### Opción B: Entorno Virtual Python Local
+
+1. **Crear y activar entorno virtual:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+2. **Instalar dependencias:**
+```bash
+pip install -r requirements.txt
+```
+
+3. **Configurar variables de entorno (`.env`):**
+```env
+HOST=0.0.0.0
+PORT=8000
+DEBUG=True
+
+DB_TYPE=pgsql
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=paulobot_store
+DB_USER=paulobot
+DB_PASS=paulobot_password
+```
+
+4. **Sembrar base de datos inicial (Seed Data & Sequences):**
+```bash
+python app/seed_data.py
+```
+
+5. **Iniciar el servidor FastAPI:**
+```bash
+python run.py
+# o directamente con uvicorn:
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+---
+
+## 📖 Documentación de la API
+
+FastAPI genera automáticamente la documentación interactiva y el esquema estandarizado:
+
+- 📑 **Swagger UI:** [`http://localhost:8000/api/docs`](http://localhost:8000/api/docs)
+- 📚 **ReDoc:** [`http://localhost:8000/api/redoc`](http://localhost:8000/api/redoc)
+- 📄 **OpenAPI Specification (JSON):** [`http://localhost:8000/api/v1/openapi.json`](http://localhost:8000/api/v1/openapi.json)
+
+---
+
+## 🛠️ Tech Stack del Backend
+
+| Componente | Tecnología |
+| :--- | :--- |
+| **Lenguaje** | Python 3.12+ |
+| **Framework Web** | FastAPI 0.115+ (ASGI Server: Uvicorn) |
+| **Base de Datos** | PostgreSQL 16 (Alpine) |
+| **ORM & Migraciones** | SQLAlchemy 2.0 & Psycopg2 |
+| **Validación & DTOs** | Pydantic v2 & Pydantic Settings |
+| **Procesamiento de Imágenes** | Pillow (Conversión a WebP optimizado) |
+| **Seguridad & Auth** | PyJWT & Passlib / Bcrypt |
+| **Contenedores** | Podman / Podman Compose |
+
+---
+
+<div align="center">
+  <sub>Desarrollado con ❤️ y Clean Architecture por <a href="https://github.com/Paulob0t"><strong>Paulo Essau (Paulob0t)</strong></a></sub>
+</div>
