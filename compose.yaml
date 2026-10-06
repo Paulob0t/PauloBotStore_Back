@@ -1,10 +1,37 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: paulobot_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: paulobot_store
+      POSTGRES_USER: paulobot
+      POSTGRES_PASSWORD: paulobot_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   vendingbox:
     build:
       context: .
       dockerfile: Containerfile
     container_name: vendingbox_app
+    restart: unless-stopped
     ports:
       - "8000:80"
     volumes:
       - .:/var/www/html:z
+    depends_on:
+      - db
+    environment:
+      DB_TYPE: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: paulobot_store
+      DB_USER: paulobot
+      DB_PASS: paulobot_password
+
+volumes:
+  postgres_data:
+

@@ -102,39 +102,53 @@ class Database
 
         self::loadEnv();
 
-        $host = getenv('DB_HOST') ?: '127.0.0.1';
-        $user = getenv('DB_USER') ?: 'root';
-        $pass = getenv('DB_PASS') ?: '';
-        $name = getenv('DB_NAME') ?: 'paulobot_vending';
-        $port = (int)(getenv('DB_PORT') ?: 3306);
+        $driver = strtolower((string)(getenv('DB_TYPE') ?: 'pgsql'));
+        $configuredHost = getenv('DB_HOST') ?: 'db';
+        $user = getenv('DB_USER') ?: 'paulobot';
+        $pass = getenv('DB_PASS') ?: 'paulobot_password';
+        $name = getenv('DB_NAME') ?: 'paulobot_store';
+        $port = (int)(getenv('DB_PORT') ?: ($driver === 'pgsql' ? 5432 : 3306));
 
-        try {
-            $dsn = "mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4";
-            $pdo = new PDO($dsn, $user, $pass, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ]);
-            self::$pdoInstance = $pdo;
-            return self::$pdoInstance;
-        } catch (Throwable $e) {
-            $remoteHost = getenv('DB_NUBE_HOST');
-            if ($remoteHost) {
-                try {
-                    $remoteUser = getenv('DB_NUBE_USER') ?: $user;
-                    $remotePass = getenv('DB_NUBE_PASS') ?: $pass;
-                    $remoteName = getenv('DB_NUBE_NAME') ?: $name;
-                    $dsn = "mysql:host=$remoteHost;port=$port;dbname=$remoteName;charset=utf8mb4";
-                    $pdo = new PDO($dsn, $remoteUser, $remotePass, [
-                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                        PDO::ATTR_EMULATE_PREPARES => false,
-                    ]);
-                    self::$pdoInstance = $pdo;
-                    return self::$pdoInstance;
-                } catch (Throwable $e2) {
-                    return null;
+        $hostsToTry = array_unique([$configuredHost, 'db', 'localhost', '127.0.0.1']);
+
+        foreach ($hostsToTry as $host) {
+            try {
+                if ($driver === 'pgsql') {
+                    $dsn = "pgsql:host=$host;port=$port;dbname=$name;";
+                } else {
+                    $dsn = "mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4";
                 }
+
+                $pdo = new PDO($dsn, $user, $pass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]);
+                self::$pdoInstance = $pdo;
+                return self::$pdoInstance;
+            } catch (Throwable $e) {
+                // Continuar probando el siguiente host
+            }
+        }
+
+        $remoteHost = getenv('DB_NUBE_HOST');
+        if ($remoteHost) {
+            try {
+                $remoteUser = getenv('DB_NUBE_USER') ?: $user;
+                $remotePass = getenv('DB_NUBE_PASS') ?: $pass;
+                $remoteName = getenv('DB_NUBE_NAME') ?: $name;
+                $dsn = ($driver === 'pgsql')
+                    ? "pgsql:host=$remoteHost;port=$port;dbname=$remoteName;"
+                    : "mysql:host=$remoteHost;port=$port;dbname=$remoteName;charset=utf8mb4";
+                $pdo = new PDO($dsn, $remoteUser, $remotePass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]);
+                self::$pdoInstance = $pdo;
+                return self::$pdoInstance;
+            } catch (Throwable $e2) {
+                return null;
             }
         }
 

@@ -3,15 +3,16 @@
 namespace App\Models;
 
 use App\Core\Database;
-use mysqli;
+use PDO;
+use Throwable;
 
 class User
 {
-    private ?mysqli $db;
+    private ?PDO $db;
 
     public function __construct()
     {
-        $this->db = Database::getConnection();
+        $this->db = Database::getPdoConnection();
     }
 
     /**
@@ -20,34 +21,37 @@ class User
     public function getAll(): array
     {
         $users = [];
-        if (!$this->db || $this->db->connect_error) {
+        if (!$this->db) {
             return $users;
         }
 
-        $sql = "SELECT id, nombre, correo, tipo_usuario, activo, fecha_creacion 
-                FROM usuarios 
-                ORDER BY id DESC";
+        try {
+            $sql = "SELECT id, nombre, correo, tipo_usuario, activo, created_at 
+                    FROM usuarios 
+                    ORDER BY id DESC";
+            $stmt = $this->db->query($sql);
+            if ($stmt) {
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    $tipoRaw = $row['tipo_usuario'];
+                    $tipoLabel = is_numeric($tipoRaw) ? match ((int)$tipoRaw) {
+                        0 => 'Super Administrador',
+                        1 => 'Administrador',
+                        default => 'Operador'
+                    } : (string)$tipoRaw;
 
-        if ($res = $this->db->query($sql)) {
-            while ($row = $res->fetch_assoc()) {
-                $tipo = (int)$row['tipo_usuario'];
-                $tipoLabel = match ($tipo) {
-                    0 => 'Super Administrador',
-                    1 => 'Administrador',
-                    default => 'Operador'
-                };
-
-                $users[] = [
-                    'id' => (int)$row['id'],
-                    'nombre' => (string)$row['nombre'],
-                    'correo' => (string)$row['correo'],
-                    'tipo_usuario' => $tipo,
-                    'tipo_usuario_label' => $tipoLabel,
-                    'activo' => (int)($row['activo'] ?? 1),
-                    'fecha_creacion' => $row['fecha_creacion'] ?: null
-                ];
+                    $users[] = [
+                        'id' => (int)$row['id'],
+                        'nombre' => (string)$row['nombre'],
+                        'correo' => (string)$row['correo'],
+                        'tipo_usuario' => $tipoRaw,
+                        'tipo_usuario_label' => $tipoLabel,
+                        'activo' => (int)($row['activo'] ?? 1),
+                        'created_at' => $row['created_at'] ?? null
+                    ];
+                }
             }
-            $res->free();
+        } catch (Throwable $e) {
+            // fallback
         }
 
         return $users;
@@ -58,23 +62,19 @@ class User
      */
     public function findByEmail(string $email): ?array
     {
-        if (!$this->db || $this->db->connect_error) {
+        if (!$this->db) {
             return null;
         }
 
-        $sql = "SELECT id, contrasena, tipo_usuario, nombre, activo, correo FROM usuarios WHERE correo = ? LIMIT 1";
-        $stmt = $this->db->prepare($sql);
-        if (!$stmt) {
+        try {
+            $sql = "SELECT id, contrasena, tipo_usuario, nombre, activo, correo FROM usuarios WHERE LOWER(correo) = LOWER(?) LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $user ?: null;
+        } catch (Throwable $e) {
             return null;
         }
-
-        $stmt->bind_param('s', $email);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $user = $res->fetch_assoc();
-        $stmt->close();
-
-        return $user ?: null;
     }
 
     /**
@@ -82,51 +82,39 @@ class User
      */
     public function findById(int $id): ?array
     {
-        if (!$this->db || $this->db->connect_error) {
+        if (!$this->db) {
             return null;
         }
 
-        $sql = "SELECT id, tipo_usuario, nombre, correo, activo FROM usuarios WHERE id = ? LIMIT 1";
-        $stmt = $this->db->prepare($sql);
-        if (!$stmt) {
+        try {
+            $sql = "SELECT id, tipo_usuario, nombre, correo, activo FROM usuarios WHERE id = ? LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $user ?: null;
+        } catch (Throwable $e) {
             return null;
         }
-
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $user = $res->fetch_assoc();
-        $stmt->close();
-
-        return $user ?: null;
     }
 
     /**
      * Crear un nuevo usuario en el sistema.
      */
-    public function create(string $name, string $email, string $plainPassword, int $tipoUsuario = 1, int $activo = 1): int
+    public function create(string $name, string $email, string $plainPassword, string|int $tipoUsuario = 'Administrador', int $activo = 1): int
     {
-        if (!$this->db || $this->db->connect_error) {
+        if (!$this->db) {
             return 0;
         }
 
-        $hash = password_hash($plainPassword, PASSWORD_DEFAULT);
-        $sql = 'INSERT INTO usuarios (nombre, correo, contrasena, tipo_usuario, activo) VALUES (?, ?, ?, ?, ?)';
-
-        $stmt = $this->db->prepare($sql);
-        if (!$stmt) {
+        try {
+            $hash = password_hash($plainPassword, PASSWORD_DEFAULT);
+            $sql = 'INSERT INTO usuarios (nombre, correo, contrasena, tipo_usuario, activo) VALUES (?, ?, ?, ?, ?)';
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$name, $email, $hash, (string)$tipoUsuario, $activo]);
+            return (int)$this->db->lastInsertId();
+        } catch (Throwable $e) {
             return 0;
         }
-
-        $stmt->bind_param('sssii', $name, $email, $hash, $tipoUsuario, $activo);
-        if ($stmt->execute()) {
-            $id = (int)$stmt->insert_id;
-            $stmt->close();
-            return $id;
-        }
-
-        $stmt->close();
-        return 0;
     }
 
     /**
@@ -134,19 +122,16 @@ class User
      */
     public function updateStatus(int $userId, int $active): bool
     {
-        if (!$this->db || $this->db->connect_error) {
+        if (!$this->db) {
             return false;
         }
 
-        $stmt = $this->db->prepare("UPDATE usuarios SET activo = ? WHERE id = ?");
-        if ($stmt) {
-            $stmt->bind_param('ii', $active, $userId);
-            $success = $stmt->execute();
-            $stmt->close();
-            return $success;
+        try {
+            $stmt = $this->db->prepare("UPDATE usuarios SET activo = ? WHERE id = ?");
+            return $stmt->execute([$active, $userId]);
+        } catch (Throwable $e) {
+            return false;
         }
-
-        return false;
     }
 
     /**
@@ -154,20 +139,17 @@ class User
      */
     public function updatePassword(int $userId, string $newPlainPassword): bool
     {
-        if (!$this->db || $this->db->connect_error) {
+        if (!$this->db) {
             return false;
         }
 
-        $newHash = password_hash($newPlainPassword, PASSWORD_DEFAULT);
-        $stmt = $this->db->prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?');
-        if ($stmt) {
-            $stmt->bind_param('si', $newHash, $userId);
-            $success = $stmt->execute();
-            $stmt->close();
-            return $success;
+        try {
+            $newHash = password_hash($newPlainPassword, PASSWORD_DEFAULT);
+            $stmt = $this->db->prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?');
+            return $stmt->execute([$newHash, $userId]);
+        } catch (Throwable $e) {
+            return false;
         }
-
-        return false;
     }
 
     /**
@@ -180,7 +162,7 @@ class User
             return false;
         }
 
-        // 1. Algoritmo estándar BCrypt
+        // 1. Algoritmo estándar BCrypt / Argon2
         if (password_get_info($storedHash)['algo'] !== 0) {
             if (password_verify($plainPassword, $storedHash)) {
                 return true;
